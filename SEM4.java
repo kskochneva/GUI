@@ -4,87 +4,69 @@ import java.util.*;
 public class SEM4 {
     //static - метод принадлежит классу, можно вызвать без создания объекта
     public static void main(String[] args) {
-        int n = 4; // кол-во комнат
+        Scanner scanner = new Scanner(System.in);
 
-        // для каждой вершины храним список пар соседей и весов
-        List<List<int[]>> graph = new ArrayList<>();
-        //смоздаю граф набор точек и коридоров
-        //[номер соседа ; вес коридора]
+        System.out.print("Введите количество комнат: ");
+        int n = scanner.nextInt();
+
+        // Создаём таблица расстояний
+        int[][] graph = new int[n][n];
         for (int i = 0; i < n; i++) {
-            graph.add(new ArrayList<>());
+            Arrays.fill(graph[i], -1);  // -1 означает "нет пути"
         }
 
-        // Добавляем рёбра (u, v, w)
-        // откуда куда вес
-        addEdge(graph, 0, 1, 4); // му 0 и 1 с длиной 4
-        addEdge(graph, 0, 2, 1);
-        addEdge(graph, 1, 3, 1);
-        addEdge(graph, 2, 1, 2);
-        addEdge(graph, 2, 3, 5);
+        System.out.print("Введите количество коридоров: ");
+        int m = scanner.nextInt();
 
-        int start = 0;//начало пути
-        int end = 3;//тут сокровище
-
-        int result = dijkstra(graph, n, start, end);
-        //полуичли длину кратчайшего пути
-        //макс вал - макс возможное значни int = бесконечность
-
-        if (result == Integer.MAX_VALUE) {
-            System.out.println("Сокровище недостижимо");
-        } else {
-            System.out.println("Длина кратчайшего пути: " + result);
+        System.out.println("Введите коридоры (откуда куда длина):");
+        for (int i = 0; i < m; i++) {
+            int u = scanner.nextInt();
+            int v = scanner.nextInt();
+            int w = scanner.nextInt();
+            graph[u][v] = w;
+            graph[v][u] = w;  // двусторонний
         }
-    }
 
-    // доб ребра0
-    //метод принадлежит классу, можно вызвать без создания объекта
-    //метод ничего не возвращает, просто делает действие
-    static void addEdge(List<List<int[]>> graph, int u, int v, int w) {
-        graph.get(u).add(new int[]{v, w});
-        graph.get(v).add(new int[]{u, w});//возьми ячейку под номером u
-    }//коридор можно проходить в ОБЕ стороны
-    //graph[0] = [ [1,4], [2,1] ]   → Из комнаты 0 можно пойти в 1 (длина 4) и в 2 (длина 1)
-    static int dijkstra(List<List<int[]>> graph, int n, int start, int end) {
-        // Массив минимальных расстояний
-        //таблица, где для каждой комнаты записано, какое сейчас известно минимальное расстояние от старта до этой комнаты
-        int[] dist = new int[n];
-        Arrays.fill(dist, Integer.MAX_VALUE);// заполняем бесконечностью
-        dist[start] = 0;// // расстояние до старта
+        System.out.print("Введите начальную комнату: ");
+        int start = scanner.nextInt();
 
-        // Очередь с приоритетом (расстояние, вершина)
-        PriorityQueue<int[]> pq = new PriorityQueue<>(Comparator.comparingInt(a -> a[0]));
-        pq.offer(new int[]{0, start});// кладём стартовую вершину
+        System.out.print("Введите комнату с сокровищем: ");
+        int end = scanner.nextInt();
 
-        while (!pq.isEmpty()) {//пока в очереди есть вершины для обработки
-            int[] current = pq.poll();//берёт первый элемент и УДАЛЯЕТ его из очереди
-            int currentDist = current[0];
-            int u = current[1];
+        scanner.close();
 
-            // Если нашли конечную вершину, можно завершить
-            if (u == end) {
-                return currentDist;
+        // Дейкстра
+        int[] dist = new int[n];//создаем массив
+        boolean[] visited = new boolean[n];
+        Arrays.fill(dist, Integer.MAX_VALUE);//заполянем бесконечностью
+        dist[start] = 0;
+
+        for (int i = 0; i < n; i++) {
+            // Находим непосещённую вершину с минимальным расстоянием
+            int u = -1;
+            int minDist = Integer.MAX_VALUE;
+            for (int j = 0; j < n; j++) {
+                if (!visited[j] && dist[j] < minDist) {
+                    minDist = dist[j];
+                    u = j;
+                }
             }
 
-            // Если в очереди устаревшая запись
-            //Вершина может быть добавлена в очередь несколько раз с разными расстояниями
-            if (currentDist > dist[u]) {
-                continue;
-            }
+            if (u == -1) break;  // нет достижимых вершин
+            visited[u] = true;
 
-            // Проверяем всех соседей ТКЩЕЙ вершны
-            //получаем список соседей вершины u
-            for (int[] edge : graph.get(u)) {
-                int v = edge[0];//Берёт номер соседней вершины
-                int weight = edge[1];
-                int newDist = currentDist + weight;//Вычисляет новый путь до соседа через текущую вершину
-
-                if (newDist < dist[v]) {
-                    dist[v] = newDist;
-                    pq.offer(new int[]{newDist, v});//добавляем значение в очередь
+            // Обновляем расстояния до соседей
+            for (int v = 0; v < n; v++) {
+                if (graph[u][v] != -1 && dist[u] + graph[u][v] < dist[v]) {
+                    dist[v] = dist[u] + graph[u][v];
                 }
             }
         }
 
-        return dist[end];
+        if (dist[end] == Integer.MAX_VALUE) {
+            System.out.println("Сокровище недостижимо");
+        } else {
+            System.out.println("Длина кратчайшего пути: " + dist[end]);
+        }
     }
 }

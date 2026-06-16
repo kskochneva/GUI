@@ -13,14 +13,22 @@ public class Lab1 {
 
         try {
             BufferedReader reader = new BufferedReader(new FileReader(filePath));
-            String firstLine = reader.readLine();
-            int count = Integer.parseInt(firstLine);
+            String[] lines = reader.lines().toArray(String[]::new);
+            reader.close();
 
-            numbers = new int[count];
+            String[] strNumbers;
 
-            for (int i = 0; i < count; i++) {
-                String line = reader.readLine();
-                numbers[i] = Integer.parseInt(line);
+            if (lines.length == 1 && lines[0].contains(",")) {
+                strNumbers = lines[0].split(",");
+            } else {
+                strNumbers = lines;
+            }
+
+            numbers = new int[strNumbers.length];
+
+            for (int i = 0; i < strNumbers.length; i++) {
+
+                numbers[i] = Integer.parseInt(strNumbers[i]);
             }
 
             reader.close();

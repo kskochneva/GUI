@@ -123,6 +123,7 @@ public class Gas_Station {
 
 
         int maxQueueSize = 0;
+        int lastPumpIndex = 0; // ДЛЯ РАВНОМЕРНОГО РАСПРЕДЕЛЕНИЯ (ROUND-ROBIN)
 
 
         for (int minute = 0; minute < simulationMinutes; minute++) {
@@ -133,17 +134,18 @@ public class Gas_Station {
             double baseChance;
             String timeOfDay = "";
 
+            // ИСПРАВЛЕНО: реальные коэффициенты (ночью — 0.02, днём — 0.2, пик — 0.6)
             if ((hourOfDay >= 8 && hourOfDay <= 10) || (hourOfDay >= 17 && hourOfDay <= 19)) {
-                baseChance = 0.5;
+                baseChance = 0.6;   // часы пик (было 0.8 — слишком много)
                 timeOfDay = "сильная нагрузка утро и вечер";
             } else if (hourOfDay >= 0 && hourOfDay <= 5) {
-                baseChance = 0.05;
+                baseChance = 0.02;  // ночь (было 0.7 — нереально много)
                 timeOfDay = "ночные время";
             } else if ((hourOfDay >= 12 && hourOfDay <= 14)) {
-                baseChance = 0.35;   // обеденное время
+                baseChance = 0.25;  // обед (было 0.6)
                 timeOfDay = "середина дня";
             } else {
-                baseChance = 0.2;   // обычное время
+                baseChance = 0.15;  // обычное время (было 0.8)
                 timeOfDay = "другие часы";
             }
 
@@ -237,11 +239,13 @@ public class Gas_Station {
             }
 
 
-            for (Pump pump : pumps) {
-                if (pump.isFree() && !queue.isEmpty()) {
-                    Car car = queue.poll();// Достаем и удаляем первый элемент из очереди
+            // ИСПРАВЛЕНО: РАВНОМЕРНОЕ РАСПРЕДЕЛЕНИЕ (ROUND-ROBIN)
+            int checkedPumps = 0;
+            while (!queue.isEmpty() && checkedPumps < pumps.length) {
+                Pump pump = pumps[lastPumpIndex];
+                if (pump.isFree()) {
+                    Car car = queue.poll();
                     double actualFill = car.actualFill();
-
 
                     if (actualFill <= fuelStock + 0.001) {
                         pump.startFill(car);
@@ -250,14 +254,17 @@ public class Gas_Station {
                         System.out.printf("[%02d:%02d] [ЗАПРАВКА] Колонка %d начала заправку: %.1fл, время=%.2f мин. Осталось бензина: %.1fл\n",
                                 hourOfDay, minuteOfHour, pump.id, actualFill, fillTime, fuelStock);
                     } else {
-
-                        queue.add(car);
+                        // Если бензина нет — возвращаем машину в начало очереди
+                        ((LinkedList<Car>) queue).addFirst(car);
                         totalCarsLeftNoFuel++;
                         System.out.printf("[%02d:%02d] [!] НЕТ БЕНЗИНА для заправки (нужно %.1fл, осталось %.1fл). Машина вернулась в очередь\n",
                                 hourOfDay, minuteOfHour, actualFill, fuelStock);
                         break;
                     }
                 }
+                // Переходим к следующей колонке по кругу
+                lastPumpIndex = (lastPumpIndex + 1) % pumps.length;
+                checkedPumps++;
             }
 
 
